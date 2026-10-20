@@ -9,47 +9,74 @@
   <title>Mein Trainingsplan</title>
   <style>
     :root {
-      --bg: #0f172a;
+      --bg: #0b1120;
       --card: #1e293b;
+      --card-inner: #0f172a;
       --accent: #38bdf8;
       --accent-hover: #0284c7;
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --border: #334155;
       --success: #22c55e;
+      --danger: #ef4444;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       margin: 0;
-      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px) 16px;
+      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 24px) 16px;
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
-    header { text-align: center; margin-bottom: 20px; }
-    header h1 { margin: 0; font-size: 1.4rem; color: var(--accent); }
-    header p { margin: 4px 0 0; font-size: 0.85rem; color: var(--text-muted); }
+    header { text-align: center; margin-bottom: 16px; }
+    header h1 { margin: 0; font-size: 1.35rem; color: var(--accent); }
+    header p { margin: 4px 0 0; font-size: 0.8rem; color: var(--text-muted); }
+
+    .main-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 14px;
+      background: var(--card-inner);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+    .main-tabs button {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 8px 4px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .main-tabs button.active {
+      background: var(--accent);
+      color: #0b1120;
+    }
 
     .nav {
       display: flex;
       gap: 8px;
       overflow-x: auto;
-      padding-bottom: 12px;
-      margin-bottom: 16px;
+      padding-bottom: 10px;
+      margin-bottom: 14px;
     }
     .nav button {
       background: var(--card);
       border: 1px solid var(--border);
       color: var(--text-muted);
-      padding: 8px 14px;
-      border-radius: 20px;
-      font-size: 0.85rem;
+      padding: 6px 12px;
+      border-radius: 18px;
+      font-size: 0.8rem;
       white-space: nowrap;
       cursor: pointer;
     }
     .nav button.active {
       background: var(--accent);
-      color: #000;
+      color: #0b1120;
       font-weight: 600;
       border-color: var(--accent);
     }
@@ -57,66 +84,112 @@
     .card {
       background: var(--card);
       border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 14px;
+      padding: 12px;
+      margin-bottom: 12px;
       border: 1px solid var(--border);
     }
     .card-title {
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
-      margin: 0 0 4px 0;
-      display: flex;
-      justify-content: space-between;
+      margin: 0 0 2px 0;
     }
     .card-subtitle {
-      font-size: 0.8rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
-      margin-bottom: 10px;
+      margin-bottom: 4px;
+    }
+    .last-performance {
+      font-size: 0.72rem;
+      color: var(--accent);
+      margin-bottom: 8px;
+      background: rgba(56, 189, 248, 0.08);
+      padding: 3px 6px;
+      border-radius: 4px;
+      display: inline-block;
     }
 
     .set-row {
       display: grid;
-      grid-template-columns: 45px 1fr 1fr 40px;
+      grid-template-columns: 46px 1fr 1fr;
       gap: 8px;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
-    .set-row span { font-size: 0.8rem; color: var(--text-muted); }
+    .set-row span { font-size: 0.78rem; color: var(--text-muted); }
     .set-row input {
-      background: #0f172a;
+      background: var(--card-inner);
       border: 1px solid var(--border);
       color: #fff;
       padding: 6px;
       border-radius: 6px;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       text-align: center;
       width: 100%;
     }
 
-    .btn-save {
+    .btn-action {
       background: var(--accent);
-      color: #0f172a;
+      color: #0b1120;
       font-weight: bold;
       border: none;
       width: 100%;
       padding: 12px;
       border-radius: 8px;
-      font-size: 1rem;
+      font-size: 0.95rem;
       cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-action:active { background: var(--accent-hover); }
+    .btn-secondary {
+      background: var(--card-inner);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      margin-top: 6px;
+    }
+
+    .history-entry {
+      border-left: 3px solid var(--accent);
+      padding-left: 10px;
+      margin-bottom: 12px;
+    }
+    .history-entry h4 { margin: 0 0 4px 0; font-size: 0.88rem; }
+    .history-entry ul { margin: 0; padding-left: 16px; font-size: 0.78rem; color: var(--text-muted); }
+
+    .chart-box {
+      width: 100%;
+      background: var(--card-inner);
+      border-radius: 8px;
+      padding: 10px;
+      border: 1px solid var(--border);
       margin-top: 10px;
     }
-    .btn-save:active { background: var(--accent-hover); }
+    canvas { width: 100%; height: 220px; display: block; }
+
+    select {
+      width: 100%;
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
+    }
 
     .toast {
       position: fixed;
-      bottom: 30px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
       background: var(--success);
-      color: #000;
+      color: #0b1120;
       padding: 8px 16px;
       border-radius: 20px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: bold;
       display: none;
       z-index: 100;
@@ -130,10 +203,49 @@
     <p>Allach Homegym & Ausdauer</p>
   </header>
 
-  <div class="nav" id="day-nav"></div>
-  <div id="exercise-list"></div>
-  <button class="btn-save" id="save-btn" onclick="saveDay()">Trainingseinheit speichern</button>
-  <div class="toast" id="toast">Erfolgreich gespeichert! ✓</div>
+  <div class="main-tabs">
+    <button id="tab-train" class="active" onclick="switchMainTab('train')">Training</button>
+    <button id="tab-stats" onclick="switchMainTab('stats')">Fortschritt</button>
+    <button id="tab-history" onclick="switchMainTab('history')">Verlauf</button>
+  </div>
+
+  <!-- BEREICH 1: TRAININGSEINGABE -->
+  <div id="view-train">
+    <div class="nav" id="day-nav"></div>
+    <div id="exercise-list"></div>
+    <button class="btn-action" onclick="saveWorkoutSession()">Einheit für heute speichern</button>
+  </div>
+
+  <!-- BEREICH 2: FORTSCHRITT & GRAFIK -->
+  <div id="view-stats" style="display:none;">
+    <div class="card">
+      <div class="card-title">Übungsfortschritt & 1RM</div>
+      <div class="card-subtitle">Wähle eine Übung zur Visualisierung:</div>
+      <select id="exercise-select" onchange="renderProgressChart()"></select>
+      <div class="chart-box">
+        <canvas id="progressChart"></canvas>
+      </div>
+      <div id="stats-summary" style="margin-top:10px; font-size:0.8rem; color:var(--text-muted);"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Daten-Backup & Sync</div>
+      <div class="card-subtitle">Übertrage deine Einheiten zwischen iPhone und iPad:</div>
+      <button class="btn-secondary" style="width:100%;" onclick="exportData()">Daten als Backup exportieren</button>
+      <input type="file" id="importFile" style="display:none;" onchange="importData(event)">
+      <button class="btn-secondary" style="width:100%; margin-top:6px;" onclick="document.getElementById('importFile').click()">Backup-Datei importieren</button>
+    </div>
+  </div>
+
+  <!-- BEREICH 3: VERLAUF / HISTORIE -->
+  <div id="view-history" style="display:none;">
+    <div class="card">
+      <div class="card-title">Vergangene Einheiten</div>
+      <div id="history-list" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">Gespeichert! ✓</div>
 
   <script>
     const plan = {
@@ -146,25 +258,25 @@
           { name: "Enges Kabelrudern", target: "3 × 8–10", sets: 3 },
           { name: "Schulterdrücken (KH)", target: "3 × 8–10", sets: 3 },
           { name: "Facepulls (Kabelzug)", target: "3 × 12–15", sets: 3 },
-          { name: "Arm-Supersatz: Trizeps & Curls", target: "2–3 × 10–12", sets: 3 }
+          { name: "Arm-Supersatz: Trizeps & Curls", target: "Je 2–3 × 10–12", sets: 3 }
         ]
       },
       do: {
         name: "Donnerstag: Unterkörper",
         desc: "Beine & Core",
         exercises: [
-          { name: "Goblet Squats / Frontkniebeuge", target: "4 × 8–10 (Pause 90-120s)", sets: 4 },
-          { name: "Rumänisches Kreuzheben (RDL)", target: "3–4 × 10–12 (Pause 90s)", sets: 4 },
-          { name: "Split Squats (KH / TRX)", target: "3 × 8–10 je Bein (Pause 60s)", sets: 3 },
-          { name: "Wadenheben (KH / Smith)", target: "3 × 12–15 (2s Pause oben)", sets: 3 },
-          { name: "Hängendes Knie-/Beinheben", target: "3 × 10–12 (ohne Schwung)", sets: 3 }
+          { name: "Goblet Squats / Frontkniebeuge", target: "4 × 8–10", sets: 4 },
+          { name: "Rumänisches Kreuzheben (RDL)", target: "3–4 × 10–12", sets: 4 },
+          { name: "Split Squats (KH / TRX)", target: "3 × 8–10 je Bein", sets: 3 },
+          { name: "Wadenheben (KH / Smith)", target: "3 × 12–15", sets: 3 },
+          { name: "Hängendes Knie-/Beinheben", target: "3 × 10–12", sets: 3 }
         ]
       },
       sa: {
         name: "Samstag: Athletik & Hypertrophie",
         desc: "Ganzkörper & Ergänzung",
         exercises: [
-          { name: "Kettlebell Swings", target: "3–4 × 15–20 (Pause 60s)", sets: 4 },
+          { name: "Kettlebell Swings", target: "3–4 × 15–20", sets: 4 },
           { name: "TRX Fallouts / Pike", target: "3 × 10–12", sets: 3 },
           { name: "Schrägbankdrücken (KH / Bank 30-45°)", target: "3 × 8–10", sets: 3 },
           { name: "Butterfly am Kabelzug", target: "2–3 × 12–15", sets: 3 },
@@ -177,53 +289,81 @@
         name: "Ausdauer-Tage",
         desc: "Rolle / Ergometer",
         exercises: [
-          { name: "Mittwoch: Locker kurbeln", target: "30–45 Min., Stufe 2-3/10 (ganze Sätze)", sets: 1 },
-          { name: "Sonntag: VO2max Intervalle", target: "20m Einrollen + 4x(4m hart / 3m locker) + Ausfahren (90-120m)", sets: 1 }
+          { name: "Mittwoch: Locker kurbeln", target: "30–45 Min., Stufe 2-3/10", sets: 1 },
+          { name: "Sonntag: VO2max Intervalle", target: "4x4 Min. hart / 3 Min. locker (90-120 Min.)", sets: 1 }
         ]
       }
     };
 
     let activeDay = 'di';
+    let currentMainTab = 'train';
 
-    function init() {
+    function getHistory() {
+      return JSON.parse(localStorage.getItem('workout_sessions_v2') || '[]');
+    }
+
+    function switchMainTab(tab) {
+      currentMainTab = tab;
+      ['train', 'stats', 'history'].forEach(t => {
+        document.getElementById(`view-${t}`).style.display = (t === tab) ? 'block' : 'none';
+        document.getElementById(`tab-${t}`).className = (t === tab) ? 'active' : '';
+      });
+      if (tab === 'stats') initStatsTab();
+      if (tab === 'history') renderHistoryTab();
+    }
+
+    function initTrainNav() {
       const nav = document.getElementById('day-nav');
       nav.innerHTML = Object.keys(plan).map(k => `
         <button class="${k === activeDay ? 'active' : ''}" onclick="switchDay('${k}')">
           ${plan[k].name.split(':')[0]}
         </button>
       `).join('');
-      renderExercises();
+      renderExerciseList();
     }
 
     function switchDay(key) {
       activeDay = key;
-      init();
+      initTrainNav();
     }
 
-    function renderExercises() {
+    function getLastPerformance(exerciseName) {
+      const history = getHistory();
+      for (let i = 0; i < history.length; i++) {
+        const found = history[i].exercises.find(e => e.name === exerciseName);
+        if (found && found.sets.length > 0) {
+          const setsSummary = found.sets
+            .filter(s => s.weight || s.reps)
+            .map(s => `${s.weight || 0}kg × ${s.reps || 0}`)
+            .join(' | ');
+          if (setsSummary) return { date: history[i].date, text: setsSummary };
+        }
+      }
+      return null;
+    }
+
+    function renderExerciseList() {
       const container = document.getElementById('exercise-list');
       const data = plan[activeDay];
-      const saved = JSON.parse(localStorage.getItem('workout_history') || '{}');
-      
       let html = `<div style="margin-bottom:12px;"><strong>${data.name}</strong><br><small style="color:var(--text-muted)">${data.desc}</small></div>`;
 
       data.exercises.forEach((ex, exIdx) => {
-        html += `<div class="card">
-          <div class="card-title">${ex.name}</div>
-          <div class="card-subtitle">Ziel: ${ex.target}</div>`;
-        
-        for (let s = 1; s <= ex.sets; s++) {
-          const keyWeight = `${activeDay}_${exIdx}_s${s}_weight`;
-          const keyReps = `${activeDay}_${exIdx}_s${s}_reps`;
-          const valWeight = saved[keyWeight] || '';
-          const valReps = saved[keyReps] || '';
+        const last = getLastPerformance(ex.name);
+        const lastInfo = last ? `<div class="last-performance">Letztes Mal (${last.date}): ${last.text}</div>` : '';
 
+        html += `
+          <div class="card">
+            <div class="card-title">${ex.name}</div>
+            <div class="card-subtitle">Ziel: ${ex.target}</div>
+            ${lastInfo}
+        `;
+
+        for (let s = 1; s <= ex.sets; s++) {
           html += `
             <div class="set-row">
               <span>Satz ${s}</span>
-              <input type="number" step="0.5" placeholder="kg" id="${keyWeight}" value="${valWeight}">
-              <input type="number" placeholder="Wdh" id="${keyReps}" value="${valReps}">
-              <span style="text-align:right;">✓</span>
+              <input type="number" step="0.5" placeholder="kg" id="input_${activeDay}_${exIdx}_s${s}_w">
+              <input type="number" placeholder="Wdh" id="input_${activeDay}_${exIdx}_s${s}_r">
             </div>
           `;
         }
@@ -233,20 +373,234 @@
       container.innerHTML = html;
     }
 
-    function saveDay() {
-      const inputs = document.querySelectorAll('#exercise-list input');
-      const saved = JSON.parse(localStorage.getItem('workout_history') || '{}');
-      inputs.forEach(input => {
-        saved[input.id] = input.value;
+    function saveWorkoutSession() {
+      const data = plan[activeDay];
+      const sessionExercises = [];
+      let hasData = false;
+
+      data.exercises.forEach((ex, exIdx) => {
+        const sets = [];
+        let maxWeight = 0;
+        let maxEst1RM = 0;
+
+        for (let s = 1; s <= ex.sets; s++) {
+          const wInput = document.getElementById(`input_${activeDay}_${exIdx}_s${s}_w`);
+          const rInput = document.getElementById(`input_${activeDay}_${exIdx}_s${s}_r`);
+          const weight = parseFloat(wInput ? wInput.value : 0) || 0;
+          const reps = parseInt(rInput ? rInput.value : 0) || 0;
+
+          if (weight > 0 || reps > 0) {
+            hasData = true;
+            sets.push({ set: s, weight, reps });
+            if (weight > maxWeight) maxWeight = weight;
+            // 1RM nach Epley: Gewicht * (1 + reps/30)
+            const est1RM = reps > 0 ? (weight * (1 + reps / 30)) : weight;
+            if (est1RM > maxEst1RM) maxEst1RM = Math.round(est1RM * 10) / 10;
+          }
+        }
+
+        if (sets.length > 0) {
+          sessionExercises.push({
+            name: ex.name,
+            sets: sets,
+            maxWeight: maxWeight,
+            est1RM: maxEst1RM
+          });
+        }
       });
-      localStorage.setItem('workout_history', JSON.stringify(saved));
+
+      if (!hasData) {
+        alert("Bitte trage vor dem Speichern mindestens einen Satz ein.");
+        return;
+      }
+
+      const history = getHistory();
+      const todayStr = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
       
+      history.unshift({
+        id: Date.now(),
+        date: todayStr,
+        dayKey: activeDay,
+        dayName: data.name,
+        exercises: sessionExercises
+      });
+
+      localStorage.setItem('workout_sessions_v2', JSON.stringify(history));
+
       const toast = document.getElementById('toast');
       toast.style.display = 'block';
       setTimeout(() => { toast.style.display = 'none'; }, 2000);
+
+      renderExerciseList();
     }
 
-    init();
+    function renderHistoryTab() {
+      const container = document.getElementById('history-list');
+      const history = getHistory();
+
+      if (history.length === 0) {
+        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">Noch keine gespeicherten Einheiten vorhanden.</p>';
+        return;
+      }
+
+      let html = '';
+      history.forEach((session, idx) => {
+        html += `
+          <div class="history-entry">
+            <h4>${session.date} – ${session.dayName}</h4>
+            <ul>
+        `;
+        session.exercises.forEach(ex => {
+          const setsStr = ex.sets.map(s => `${s.weight}kg × ${s.reps}`).join(', ');
+          html += `<li><strong>${ex.name}:</strong> ${setsStr}</li>`;
+        });
+        html += `</ul></div>`;
+      });
+
+      container.innerHTML = html;
+    }
+
+    function initStatsTab() {
+      const select = document.getElementById('exercise-select');
+      const allExercises = new Set();
+      Object.keys(plan).forEach(k => {
+        plan[k].exercises.forEach(e => allExercises.add(e.name));
+      });
+
+      const currentVal = select.value;
+      select.innerHTML = Array.from(allExercises).map(name => `
+        <option value="${name}">${name}</option>
+      `).join('');
+
+      if (currentVal && allExercises.has(currentVal)) {
+        select.value = currentVal;
+      }
+      renderProgressChart();
+    }
+
+    function renderProgressChart() {
+      const exName = document.getElementById('exercise-select').value;
+      const history = getHistory().slice().reverse();
+      const points = [];
+
+      history.forEach(sess => {
+        const found = sess.exercises.find(e => e.name === exName);
+        if (found && found.maxWeight > 0) {
+          points.push({
+            date: sess.date.slice(0, 5),
+            weight: found.maxWeight,
+            est1RM: found.est1RM || found.maxWeight
+          });
+        }
+      });
+
+      const canvas = document.getElementById('progressChart');
+      const ctx = canvas.getContext('2d');
+      const summary = document.getElementById('stats-summary');
+
+      // Setup Canvas-Größe
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = 220 * dpr;
+      ctx.scale(dpr, dpr);
+
+      ctx.clearRect(0, 0, rect.width, 220);
+
+      if (points.length === 0) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Noch keine Daten für diese Übung', rect.width / 2, 110);
+        summary.innerHTML = '';
+        return;
+      }
+
+      const padding = 35;
+      const w = rect.width - padding * 2;
+      const h = 220 - padding * 2;
+
+      const maxVal = Math.max(...points.map(p => Math.max(p.weight, p.est1RM))) * 1.15;
+      const minVal = Math.min(...points.map(p => p.weight)) * 0.85;
+
+      const getX = (i) => points.length === 1 ? rect.width / 2 : padding + (i / (points.length - 1)) * w;
+      const getY = (val) => 220 - padding - ((val - minVal) / (maxVal - minVal || 1)) * h;
+
+      // Achsen-Beschriftungen & Hilfslinien
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padding, 220 - padding);
+      ctx.lineTo(rect.width - padding, 220 - padding);
+      ctx.stroke();
+
+      // Linie 1: Maximalgewicht (Blau)
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      points.forEach((p, i) => {
+        const x = getX(i);
+        const y = getY(p.weight);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      // Punkte & Text für Maximalgewicht
+      points.forEach((p, i) => {
+        const x = getX(i);
+        const y = getY(p.weight);
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${p.weight}kg`, x, y - 8);
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText(p.date, x, 220 - 18);
+      });
+
+      const latest = points[points.length - 1];
+      summary.innerHTML = `Letzter Eintrag: <strong>${latest.weight} kg</strong> (Geschätztes 1RM: <strong>${latest.est1RM} kg</strong>)`;
+    }
+
+    function exportData() {
+      const history = getHistory();
+      const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `trainingsplan_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (Array.isArray(parsed)) {
+            localStorage.setItem('workout_sessions_v2', JSON.stringify(parsed));
+            alert("Backup erfolgreich wiederhergestellt!");
+            renderHistoryTab();
+            initStatsTab();
+          } else {
+            alert("Ungültiges Dateiformat.");
+          }
+        } catch (err) {
+          alert("Fehler beim Lesen der Datei.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    initTrainNav();
   </script>
 </body>
 </html>
