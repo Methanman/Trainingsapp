@@ -18,7 +18,6 @@
       --text-muted: #94a3b8;
       --border: #334155;
       --success: #22c55e;
-      --danger: #ef4444;
     }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
@@ -52,10 +51,7 @@
       font-weight: 600;
       cursor: pointer;
     }
-    .main-tabs button.active {
-      background: var(--accent);
-      color: #0b1120;
-    }
+    .main-tabs button.active { background: var(--accent); color: #0b1120; }
 
     .nav {
       display: flex;
@@ -81,6 +77,25 @@
       border-color: var(--accent);
     }
 
+    .date-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+    .date-box label { font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 4px; }
+    .date-box input[type="date"] {
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      width: 100%;
+    }
+    .date-label { font-size: 0.85rem; color: var(--accent); margin-top: 6px; font-weight: 600; }
+
     .card {
       background: var(--card);
       border-radius: 12px;
@@ -88,16 +103,8 @@
       margin-bottom: 12px;
       border: 1px solid var(--border);
     }
-    .card-title {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin: 0 0 2px 0;
-    }
-    .card-subtitle {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-bottom: 4px;
-    }
+    .card-title { font-size: 0.95rem; font-weight: 600; margin: 0 0 2px 0; }
+    .card-subtitle { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
     .last-performance {
       font-size: 0.72rem;
       color: var(--accent);
@@ -127,6 +134,22 @@
       width: 100%;
     }
 
+    .plan-list { margin: 8px 0 0 0; padding-left: 18px; font-size: 0.85rem; line-height: 1.5; }
+    .plan-list li { margin-bottom: 4px; }
+    .done-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card-inner);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 12px;
+      cursor: pointer;
+    }
+    .done-box input { width: 26px; height: 26px; accent-color: var(--success); }
+    .done-box span { font-size: 1rem; font-weight: 600; }
+
     .btn-action {
       background: var(--accent);
       color: #0b1120;
@@ -151,11 +174,8 @@
       margin-top: 6px;
     }
 
-    .history-entry {
-      border-left: 3px solid var(--accent);
-      padding-left: 10px;
-      margin-bottom: 12px;
-    }
+    .history-entry { border-left: 3px solid var(--accent); padding-left: 10px; margin-bottom: 12px; }
+    .history-entry.endurance { border-left-color: var(--success); }
     .history-entry h4 { margin: 0 0 4px 0; font-size: 0.88rem; }
     .history-entry ul { margin: 0; padding-left: 16px; font-size: 0.78rem; color: var(--text-muted); }
 
@@ -209,22 +229,25 @@
     <button id="tab-history" onclick="switchMainTab('history')">Verlauf</button>
   </div>
 
-  <!-- BEREICH 1: TRAININGSEINGABE -->
+  <!-- TRAINING -->
   <div id="view-train">
     <div class="nav" id="day-nav"></div>
+    <div class="date-box">
+      <label for="session-date">Datum der Einheit</label>
+      <input type="date" id="session-date" onchange="onDateChange()">
+      <div class="date-label" id="date-label"></div>
+    </div>
     <div id="exercise-list"></div>
-    <button class="btn-action" onclick="saveWorkoutSession()">Einheit für heute speichern</button>
+    <button class="btn-action" id="save-btn" onclick="saveWorkoutSession()">Einheit speichern</button>
   </div>
 
-  <!-- BEREICH 2: FORTSCHRITT & GRAFIK -->
+  <!-- FORTSCHRITT -->
   <div id="view-stats" style="display:none;">
     <div class="card">
       <div class="card-title">Übungsfortschritt & 1RM</div>
       <div class="card-subtitle">Wähle eine Übung zur Visualisierung:</div>
       <select id="exercise-select" onchange="renderProgressChart()"></select>
-      <div class="chart-box">
-        <canvas id="progressChart"></canvas>
-      </div>
+      <div class="chart-box"><canvas id="progressChart"></canvas></div>
       <div id="stats-summary" style="margin-top:10px; font-size:0.8rem; color:var(--text-muted);"></div>
     </div>
 
@@ -237,7 +260,7 @@
     </div>
   </div>
 
-  <!-- BEREICH 3: VERLAUF / HISTORIE -->
+  <!-- VERLAUF -->
   <div id="view-history" style="display:none;">
     <div class="card">
       <div class="card-title">Vergangene Einheiten</div>
@@ -250,6 +273,7 @@
   <script>
     const plan = {
       di: {
+        type: "strength",
         name: "Dienstag: Oberkörper",
         desc: "Rücken, Brust & Schultern",
         exercises: [
@@ -261,7 +285,19 @@
           { name: "Arm-Supersatz: Trizeps & Curls", target: "Je 2–3 × 10–12", sets: 3 }
         ]
       },
+      mi: {
+        type: "endurance",
+        name: "Mittwoch: Lockere Ausdauer",
+        desc: "Rollentrainer · 30–45 Min.",
+        items: [
+          "30–45 Minuten auf dem Rollentrainer",
+          "Anstrengung 2–3 von 10: Sprechen in ganzen Sätzen muss problemlos möglich sein",
+          "Keine Intervalle, keine schweren Gänge",
+          "Bei müden Beinen lieber kürzen oder pausieren"
+        ]
+      },
       do: {
+        type: "strength",
         name: "Donnerstag: Unterkörper",
         desc: "Beine & Core",
         exercises: [
@@ -273,6 +309,7 @@
         ]
       },
       sa: {
+        type: "strength",
         name: "Samstag: Athletik & Hypertrophie",
         desc: "Ganzkörper & Ergänzung",
         exercises: [
@@ -285,25 +322,54 @@
           { name: "Arm-Supersatz: Incline Curls & Trizeps", target: "Je 3 × 10–12", sets: 3 }
         ]
       },
-      ausdauer: {
-        name: "Ausdauer-Tage",
-        desc: "Rolle / Ergometer",
-        exercises: [
-          { name: "Mittwoch: Locker kurbeln", target: "30–45 Min., Stufe 2-3/10", sets: 1 },
-          { name: "Sonntag: VO2max Intervalle", target: "4x4 Min. hart / 3 Min. locker (90-120 Min.)", sets: 1 }
+      so: {
+        type: "endurance",
+        name: "Sonntag: Lange Ausdauer",
+        desc: "VO₂max-Intervalle · 90–120 Min.",
+        items: [
+          "Gesamtdauer: 90–120 Minuten auf der Rolle oder draußen",
+          "1. Einrollen: 20–25 Minuten locker, Belastung allmählich steigern",
+          "2. VO₂max-Block: 4 × 4 Minuten hart, aber kontrolliert und gleichmäßig; dazwischen je 3 Minuten sehr locker",
+          "3. Lockere Weiterfahrt bis zur geplanten Gesamtdauer, die letzten Minuten besonders entspannt",
+          "Bei unzureichender Erholung nur locker fahren oder die Einheit verkürzen"
         ]
       }
     };
 
+    const STORAGE_KEY = 'workout_sessions_v2';
     let activeDay = 'di';
-    let currentMainTab = 'train';
+    let sessionDateIso = todayIso();
+
+    function todayIso() {
+      const d = new Date();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${d.getFullYear()}-${m}-${day}`;
+    }
+    function isoToDe(iso) {
+      const [y, m, d] = iso.split('-');
+      return `${d}.${m}.${y}`;
+    }
+    function deToIso(de) {
+      const p = (de || '').split('.');
+      return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : '0000-00-00';
+    }
+    function sessionIso(s) { return s.iso || deToIso(s.date); }
+    function weekdayLabel(iso) {
+      return new Date(iso + 'T12:00:00').toLocaleDateString('de-DE', {
+        weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
+      });
+    }
 
     function getHistory() {
-      return JSON.parse(localStorage.getItem('workout_sessions_v2') || '[]');
+      const h = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      return h.sort((a, b) => {
+        const c = sessionIso(b).localeCompare(sessionIso(a));
+        return c !== 0 ? c : (b.id || 0) - (a.id || 0);
+      });
     }
 
     function switchMainTab(tab) {
-      currentMainTab = tab;
       ['train', 'stats', 'history'].forEach(t => {
         document.getElementById(`view-${t}`).style.display = (t === tab) ? 'block' : 'none';
         document.getElementById(`tab-${t}`).className = (t === tab) ? 'active' : '';
@@ -319,7 +385,10 @@
           ${plan[k].name.split(':')[0]}
         </button>
       `).join('');
-      renderExerciseList();
+      const dateInput = document.getElementById('session-date');
+      dateInput.value = sessionDateIso;
+      updateDateLabel();
+      renderDay();
     }
 
     function switchDay(key) {
@@ -327,10 +396,21 @@
       initTrainNav();
     }
 
+    function onDateChange() {
+      const v = document.getElementById('session-date').value;
+      sessionDateIso = v || todayIso();
+      updateDateLabel();
+    }
+
+    function updateDateLabel() {
+      document.getElementById('date-label').textContent = weekdayLabel(sessionDateIso);
+    }
+
     function getLastPerformance(exerciseName) {
       const history = getHistory();
       for (let i = 0; i < history.length; i++) {
-        const found = history[i].exercises.find(e => e.name === exerciseName);
+        if (history[i].type === 'endurance') continue;
+        const found = (history[i].exercises || []).find(e => e.name === exerciseName);
         if (found && found.sets.length > 0) {
           const setsSummary = found.sets
             .filter(s => s.weight || s.reps)
@@ -342,39 +422,78 @@
       return null;
     }
 
-    function renderExerciseList() {
-      const container = document.getElementById('exercise-list');
+    function renderDay() {
       const data = plan[activeDay];
+      const container = document.getElementById('exercise-list');
+      const saveBtn = document.getElementById('save-btn');
       let html = `<div style="margin-bottom:12px;"><strong>${data.name}</strong><br><small style="color:var(--text-muted)">${data.desc}</small></div>`;
 
-      data.exercises.forEach((ex, exIdx) => {
-        const last = getLastPerformance(ex.name);
-        const lastInfo = last ? `<div class="last-performance">Letztes Mal (${last.date}): ${last.text}</div>` : '';
-
+      if (data.type === 'endurance') {
         html += `
           <div class="card">
-            <div class="card-title">${ex.name}</div>
-            <div class="card-subtitle">Ziel: ${ex.target}</div>
-            ${lastInfo}
-        `;
-
-        for (let s = 1; s <= ex.sets; s++) {
+            <div class="card-title">Geplant</div>
+            <ul class="plan-list">${data.items.map(i => `<li>${i}</li>`).join('')}</ul>
+            <label class="done-box">
+              <input type="checkbox" id="done-check">
+              <span>Gemacht</span>
+            </label>
+          </div>`;
+        saveBtn.textContent = 'Als erledigt speichern';
+      } else {
+        data.exercises.forEach((ex, exIdx) => {
+          const last = getLastPerformance(ex.name);
+          const lastInfo = last ? `<div class="last-performance">Letztes Mal (${last.date}): ${last.text}</div>` : '';
           html += `
-            <div class="set-row">
-              <span>Satz ${s}</span>
-              <input type="number" step="0.5" placeholder="kg" id="input_${activeDay}_${exIdx}_s${s}_w">
-              <input type="number" placeholder="Wdh" id="input_${activeDay}_${exIdx}_s${s}_r">
-            </div>
-          `;
-        }
-        html += `</div>`;
-      });
-
+            <div class="card">
+              <div class="card-title">${ex.name}</div>
+              <div class="card-subtitle">Ziel: ${ex.target}</div>
+              ${lastInfo}`;
+          for (let s = 1; s <= ex.sets; s++) {
+            html += `
+              <div class="set-row">
+                <span>Satz ${s}</span>
+                <input type="number" step="0.5" inputmode="decimal" placeholder="kg" id="input_${activeDay}_${exIdx}_s${s}_w">
+                <input type="number" inputmode="numeric" placeholder="Wdh" id="input_${activeDay}_${exIdx}_s${s}_r">
+              </div>`;
+          }
+          html += `</div>`;
+        });
+        saveBtn.textContent = 'Einheit speichern';
+      }
       container.innerHTML = html;
+    }
+
+    function showToast() {
+      const toast = document.getElementById('toast');
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 2000);
     }
 
     function saveWorkoutSession() {
       const data = plan[activeDay];
+      const history = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+
+      if (data.type === 'endurance') {
+        const check = document.getElementById('done-check');
+        if (!check || !check.checked) {
+          alert('Bitte hake zuerst „Gemacht" an.');
+          return;
+        }
+        history.push({
+          id: Date.now(),
+          iso: sessionDateIso,
+          date: isoToDe(sessionDateIso),
+          type: 'endurance',
+          dayKey: activeDay,
+          dayName: data.name,
+          done: true
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        showToast();
+        renderDay();
+        return;
+      }
+
       const sessionExercises = [];
       let hasData = false;
 
@@ -393,45 +512,33 @@
             hasData = true;
             sets.push({ set: s, weight, reps });
             if (weight > maxWeight) maxWeight = weight;
-            // 1RM nach Epley: Gewicht * (1 + reps/30)
             const est1RM = reps > 0 ? (weight * (1 + reps / 30)) : weight;
             if (est1RM > maxEst1RM) maxEst1RM = Math.round(est1RM * 10) / 10;
           }
         }
 
         if (sets.length > 0) {
-          sessionExercises.push({
-            name: ex.name,
-            sets: sets,
-            maxWeight: maxWeight,
-            est1RM: maxEst1RM
-          });
+          sessionExercises.push({ name: ex.name, sets, maxWeight, est1RM: maxEst1RM });
         }
       });
 
       if (!hasData) {
-        alert("Bitte trage vor dem Speichern mindestens einen Satz ein.");
+        alert('Bitte trage vor dem Speichern mindestens einen Satz ein.');
         return;
       }
 
-      const history = getHistory();
-      const todayStr = new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      
-      history.unshift({
+      history.push({
         id: Date.now(),
-        date: todayStr,
+        iso: sessionDateIso,
+        date: isoToDe(sessionDateIso),
+        type: 'strength',
         dayKey: activeDay,
         dayName: data.name,
         exercises: sessionExercises
       });
-
-      localStorage.setItem('workout_sessions_v2', JSON.stringify(history));
-
-      const toast = document.getElementById('toast');
-      toast.style.display = 'block';
-      setTimeout(() => { toast.style.display = 'none'; }, 2000);
-
-      renderExerciseList();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+      showToast();
+      renderDay();
     }
 
     function renderHistoryTab() {
@@ -444,163 +551,14 @@
       }
 
       let html = '';
-      history.forEach((session, idx) => {
+      history.forEach(session => {
+        if (session.type === 'endurance') {
+          html += `
+            <div class="history-entry endurance">
+              <h4>${session.date} – ${session.dayName}</h4>
+              <ul style="list-style:none; padding-left:0;"><li>✓ gemacht</li></ul>
+            </div>`;
+          return;
+        }
         html += `
-          <div class="history-entry">
-            <h4>${session.date} – ${session.dayName}</h4>
-            <ul>
-        `;
-        session.exercises.forEach(ex => {
-          const setsStr = ex.sets.map(s => `${s.weight}kg × ${s.reps}`).join(', ');
-          html += `<li><strong>${ex.name}:</strong> ${setsStr}</li>`;
-        });
-        html += `</ul></div>`;
-      });
-
-      container.innerHTML = html;
-    }
-
-    function initStatsTab() {
-      const select = document.getElementById('exercise-select');
-      const allExercises = new Set();
-      Object.keys(plan).forEach(k => {
-        plan[k].exercises.forEach(e => allExercises.add(e.name));
-      });
-
-      const currentVal = select.value;
-      select.innerHTML = Array.from(allExercises).map(name => `
-        <option value="${name}">${name}</option>
-      `).join('');
-
-      if (currentVal && allExercises.has(currentVal)) {
-        select.value = currentVal;
-      }
-      renderProgressChart();
-    }
-
-    function renderProgressChart() {
-      const exName = document.getElementById('exercise-select').value;
-      const history = getHistory().slice().reverse();
-      const points = [];
-
-      history.forEach(sess => {
-        const found = sess.exercises.find(e => e.name === exName);
-        if (found && found.maxWeight > 0) {
-          points.push({
-            date: sess.date.slice(0, 5),
-            weight: found.maxWeight,
-            est1RM: found.est1RM || found.maxWeight
-          });
-        }
-      });
-
-      const canvas = document.getElementById('progressChart');
-      const ctx = canvas.getContext('2d');
-      const summary = document.getElementById('stats-summary');
-
-      // Setup Canvas-Größe
-      const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = 220 * dpr;
-      ctx.scale(dpr, dpr);
-
-      ctx.clearRect(0, 0, rect.width, 220);
-
-      if (points.length === 0) {
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '13px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('Noch keine Daten für diese Übung', rect.width / 2, 110);
-        summary.innerHTML = '';
-        return;
-      }
-
-      const padding = 35;
-      const w = rect.width - padding * 2;
-      const h = 220 - padding * 2;
-
-      const maxVal = Math.max(...points.map(p => Math.max(p.weight, p.est1RM))) * 1.15;
-      const minVal = Math.min(...points.map(p => p.weight)) * 0.85;
-
-      const getX = (i) => points.length === 1 ? rect.width / 2 : padding + (i / (points.length - 1)) * w;
-      const getY = (val) => 220 - padding - ((val - minVal) / (maxVal - minVal || 1)) * h;
-
-      // Achsen-Beschriftungen & Hilfslinien
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(padding, 220 - padding);
-      ctx.lineTo(rect.width - padding, 220 - padding);
-      ctx.stroke();
-
-      // Linie 1: Maximalgewicht (Blau)
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      points.forEach((p, i) => {
-        const x = getX(i);
-        const y = getY(p.weight);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
-      ctx.stroke();
-
-      // Punkte & Text für Maximalgewicht
-      points.forEach((p, i) => {
-        const x = getX(i);
-        const y = getY(p.weight);
-        ctx.fillStyle = '#38bdf8';
-        ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${p.weight}kg`, x, y - 8);
-        ctx.fillStyle = '#94a3b8';
-        ctx.fillText(p.date, x, 220 - 18);
-      });
-
-      const latest = points[points.length - 1];
-      summary.innerHTML = `Letzter Eintrag: <strong>${latest.weight} kg</strong> (Geschätztes 1RM: <strong>${latest.est1RM} kg</strong>)`;
-    }
-
-    function exportData() {
-      const history = getHistory();
-      const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `trainingsplan_backup_${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function importData(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const parsed = JSON.parse(e.target.result);
-          if (Array.isArray(parsed)) {
-            localStorage.setItem('workout_sessions_v2', JSON.stringify(parsed));
-            alert("Backup erfolgreich wiederhergestellt!");
-            renderHistoryTab();
-            initStatsTab();
-          } else {
-            alert("Ungültiges Dateiformat.");
-          }
-        } catch (err) {
-          alert("Fehler beim Lesen der Datei.");
-        }
-      };
-      reader.readAsText(file);
-    }
-
-    initTrainNav();
-  </script>
-</body>
-</html>
+          <div clas
