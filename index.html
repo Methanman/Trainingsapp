@@ -561,4 +561,146 @@
           return;
         }
         html += `
-          <div clas
+          <div class="history-entry">
+            <h4>${session.date} – ${session.dayName}</h4>
+            <ul>`;
+        (session.exercises || []).forEach(ex => {
+          const setsStr = ex.sets.map(s => `${s.weight}kg × ${s.reps}`).join(', ');
+          html += `<li><strong>${ex.name}:</strong> ${setsStr}</li>`;
+        });
+        html += `</ul></div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function initStatsTab() {
+      const select = document.getElementById('exercise-select');
+      const allExercises = new Set();
+      Object.keys(plan).forEach(k => {
+        if (plan[k].type === 'strength') plan[k].exercises.forEach(e => allExercises.add(e.name));
+      });
+
+      const currentVal = select.value;
+      select.innerHTML = Array.from(allExercises).map(name => `<option value="${name}">${name}</option>`).join('');
+      if (currentVal && allExercises.has(currentVal)) select.value = currentVal;
+      renderProgressChart();
+    }
+
+    function renderProgressChart() {
+      const exName = document.getElementById('exercise-select').value;
+      const history = getHistory().slice().reverse();
+      const points = [];
+
+      history.forEach(sess => {
+        if (sess.type === 'endurance') return;
+        const found = (sess.exercises || []).find(e => e.name === exName);
+        if (found && found.maxWeight > 0) {
+          points.push({
+            date: sess.date.slice(0, 5),
+            weight: found.maxWeight,
+            est1RM: found.est1RM || found.maxWeight
+          });
+        }
+      });
+
+      const canvas = document.getElementById('progressChart');
+      const ctx = canvas.getContext('2d');
+      const summary = document.getElementById('stats-summary');
+
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = 220 * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, rect.width, 220);
+
+      if (points.length === 0) {
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Noch keine Daten für diese Übung', rect.width / 2, 110);
+        summary.innerHTML = '';
+        return;
+      }
+
+      const padding = 35;
+      const w = rect.width - padding * 2;
+      const h = 220 - padding * 2;
+
+      const maxVal = Math.max(...points.map(p => p.weight)) * 1.15;
+      const minVal = Math.min(...points.map(p => p.weight)) * 0.85;
+
+      const getX = i => points.length === 1 ? rect.width / 2 : padding + (i / (points.length - 1)) * w;
+      const getY = val => 220 - padding - ((val - minVal) / (maxVal - minVal || 1)) * h;
+
+      ctx.strokeStyle = '#334155';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padding, 220 - padding);
+      ctx.lineTo(rect.width - padding, 220 - padding);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      points.forEach((p, i) => {
+        const x = getX(i), y = getY(p.weight);
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      points.forEach((p, i) => {
+        const x = getX(i), y = getY(p.weight);
+        ctx.fillStyle = '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${p.weight}kg`, x, y - 8);
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillText(p.date, x, 220 - 18);
+      });
+
+      const latest = points[points.length - 1];
+      summary.innerHTML = `Letzter Eintrag: <strong>${latest.weight} kg</strong> (Geschätztes 1RM: <strong>${latest.est1RM} kg</strong>)`;
+    }
+
+    function exportData() {
+      const history = getHistory();
+      const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `trainingsplan_backup_${todayIso()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (Array.isArray(parsed)) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+            alert('Backup erfolgreich wiederhergestellt!');
+            renderHistoryTab();
+            initStatsTab();
+          } else {
+            alert('Ungültiges Dateiformat.');
+          }
+        } catch (err) {
+          alert('Fehler beim Lesen der Datei.');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    initTrainNav();
+  </script>
+</body>
+</html>
