@@ -282,7 +282,8 @@
           { name: "Enges Kabelrudern", target: "3 × 8–10", sets: 3 },
           { name: "Schulterdrücken (KH)", target: "3 × 8–10", sets: 3 },
           { name: "Facepulls (Kabelzug)", target: "3 × 12–15", sets: 3 },
-          { name: "Arm-Supersatz: Trizeps & Curls", target: "Je 2–3 × 10–12", sets: 3 }
+          { name: "Trizepsdrücken am Kabel", target: "Optionaler Supersatz A · 2–3 × 10–12", sets: 3 },
+          { name: "Stehende Kurzhantelcurls", target: "Optionaler Supersatz B · 2–3 × 10–12 · direkt nach A", sets: 3 }
         ]
       },
       mi: {
@@ -319,7 +320,8 @@
           { name: "Butterfly am Kabelzug", target: "2–3 × 12–15", sets: 3 },
           { name: "Seitheben (Kabelzug / KH)", target: "3–4 × 12–15", sets: 4 },
           { name: "Woodchoppers (Kabelzug)", target: "3 × 12 je Seite", sets: 3 },
-          { name: "Arm-Supersatz: Incline Curls & Trizeps", target: "Je 3 × 10–12", sets: 3 }
+          { name: "Incline Dumbbell Curls", target: "Supersatz A · 3 × 10–12", sets: 3 },
+          { name: "Überkopf-Trizepsdrücken am Kabel mit Seil", target: "Supersatz B · 3 × 10–12 · direkt nach A", sets: 3 }
         ]
       },
       so: {
@@ -346,18 +348,27 @@
       const day = String(d.getDate()).padStart(2, '0');
       return `${d.getFullYear()}-${m}-${day}`;
     }
+
     function isoToDe(iso) {
       const [y, m, d] = iso.split('-');
       return `${d}.${m}.${y}`;
     }
+
     function deToIso(de) {
       const p = (de || '').split('.');
       return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : '0000-00-00';
     }
-    function sessionIso(s) { return s.iso || deToIso(s.date); }
+
+    function sessionIso(s) {
+      return s.iso || deToIso(s.date);
+    }
+
     function weekdayLabel(iso) {
       return new Date(iso + 'T12:00:00').toLocaleDateString('de-DE', {
-        weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric'
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
       });
     }
 
@@ -400,6 +411,10 @@
       const v = document.getElementById('session-date').value;
       sessionDateIso = v || todayIso();
       updateDateLabel();
+      (plan[activeDay].exercises || []).forEach((ex, i) => {
+        const hint = document.getElementById(`hint_${i}`);
+        if (hint) hint.textContent = lastHint(ex.name);
+      });
     }
 
     function updateDateLabel() {
@@ -407,66 +422,126 @@
     }
 
     function getLastPerformance(exerciseName) {
-      const history = getHistory();
-      for (let i = 0; i < history.length; i++) {
-        if (history[i].type === 'endurance') continue;
-        const found = (history[i].exercises || []).find(e => e.name === exerciseName);
-        if (found && found.sets.length > 0) {
-          const setsSummary = found.sets
-            .filter(s => s.weight || s.reps)
-            .map(s => `${s.weight || 0}kg × ${s.reps || 0}`)
-            .join(' | ');
-          if (setsSummary) return { date: history[i].date, text: setsSummary };
-        }
-      }
-      return null;
+      const previous = getHistory().find(s =>
+        s.type !== 'endurance' &&
+        s.dayKey === activeDay &&
+        sessionIso(s) < sessionDateIso
+      );
+
+      if (!previous) return null;
+
+      const found = (previous.exercises || []).find(e => e.name === exerciseName);
+      if (!found || !Array.isArray(found.sets)) return null;
+
+      const sets = found.sets
+        .filter(s => Number(s.reps) > 0)
+        .slice()
+        .sort((a, b) => Number(a.set) - Number(b.set));
+
+      if (!sets.length) return null;
+
+      const last = sets[sets.length - 1];
+      const unit = exerciseName === 'Klimmzüge am Rack'
+        ? 'kg Zusatzgewicht'
+        : 'kg';
+
+      return {
+        date: previous.date,
+        text: `${Number(last.weight) || 0} ${unit} × ${last.reps} Wdh. (Satz ${last.set})`
+      };
+    }
+
+    function lastHint(exerciseName) {
+      const last = getLastPerformance(exerciseName);
+      return last
+        ? `Letzte gleiche Einheit (${last.date}), letzter Satz: ${last.text}`
+        : 'Kein separater Vorwert aus der vorherigen gleichen Einheit vorhanden.';
     }
 
     function renderDay() {
       const data = plan[activeDay];
       const container = document.getElementById('exercise-list');
       const saveBtn = document.getElementById('save-btn');
-      let html = `<div style="margin-bottom:12px;"><strong>${data.name}</strong><br><small style="color:var(--text-muted)">${data.desc}</small></div>`;
+
+      let html = `
+        <div style="margin-bottom:12px;">
+          <strong>${data.name}</strong><br>
+          <small style="color:var(--text-muted)">${data.desc}</small>
+        </div>`;
 
       if (data.type === 'endurance') {
         html += `
           <div class="card">
             <div class="card-title">Geplant</div>
-            <ul class="plan-list">${data.items.map(i => `<li>${i}</li>`).join('')}</ul>
+            <ul class="plan-list">
+              ${data.items.map(i => `<li>${i}</li>`).join('')}
+            </ul>
             <label class="done-box">
               <input type="checkbox" id="done-check">
               <span>Gemacht</span>
             </label>
           </div>`;
+
         saveBtn.textContent = 'Als erledigt speichern';
       } else {
         data.exercises.forEach((ex, exIdx) => {
-          const last = getLastPerformance(ex.name);
-          const lastInfo = last ? `<div class="last-performance">Letztes Mal (${last.date}): ${last.text}</div>` : '';
+          const pullup = ex.name === 'Klimmzüge am Rack';
+          const weightLabel = pullup ? 'Zusatzgewicht kg' : 'kg';
+
           html += `
             <div class="card">
               <div class="card-title">${ex.name}</div>
               <div class="card-subtitle">Ziel: ${ex.target}</div>
-              ${lastInfo}`;
+              <div class="last-performance" id="hint_${exIdx}">
+                ${lastHint(ex.name)}
+              </div>
+              ${pullup
+                ? '<p class="card-subtitle">0 kg = Körpergewicht. Wiederholungen zählen auch ohne Zusatzgewicht.</p>'
+                : ''}
+              <div class="set-row">
+                <span>Satz</span>
+                <span>${weightLabel}</span>
+                <span>Wdh.</span>
+              </div>`;
+
           for (let s = 1; s <= ex.sets; s++) {
             html += `
               <div class="set-row">
                 <span>Satz ${s}</span>
-                <input type="number" step="0.5" inputmode="decimal" placeholder="kg" id="input_${activeDay}_${exIdx}_s${s}_w">
-                <input type="number" inputmode="numeric" placeholder="Wdh" id="input_${activeDay}_${exIdx}_s${s}_r">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  inputmode="decimal"
+                  placeholder="${pullup ? '0' : 'kg'}"
+                  aria-label="${weightLabel}, Satz ${s}"
+                  id="input_${activeDay}_${exIdx}_s${s}_w">
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  placeholder="Wdh"
+                  aria-label="Wiederholungen, Satz ${s}"
+                  id="input_${activeDay}_${exIdx}_s${s}_r">
               </div>`;
           }
+
           html += `</div>`;
         });
+
         saveBtn.textContent = 'Einheit speichern';
       }
+
       container.innerHTML = html;
     }
 
     function showToast() {
       const toast = document.getElementById('toast');
       toast.style.display = 'block';
-      setTimeout(() => { toast.style.display = 'none'; }, 2000);
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 2000);
     }
 
     function saveWorkoutSession() {
@@ -475,10 +550,12 @@
 
       if (data.type === 'endurance') {
         const check = document.getElementById('done-check');
+
         if (!check || !check.checked) {
           alert('Bitte hake zuerst „Gemacht" an.');
           return;
         }
+
         history.push({
           id: Date.now(),
           iso: sessionDateIso,
@@ -488,6 +565,7 @@
           dayName: data.name,
           done: true
         });
+
         localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
         showToast();
         renderDay();
@@ -511,14 +589,26 @@
           if (weight > 0 || reps > 0) {
             hasData = true;
             sets.push({ set: s, weight, reps });
+
             if (weight > maxWeight) maxWeight = weight;
-            const est1RM = reps > 0 ? (weight * (1 + reps / 30)) : weight;
-            if (est1RM > maxEst1RM) maxEst1RM = Math.round(est1RM * 10) / 10;
+
+            const est1RM = reps > 0
+              ? weight * (1 + reps / 30)
+              : weight;
+
+            if (est1RM > maxEst1RM) {
+              maxEst1RM = Math.round(est1RM * 10) / 10;
+            }
           }
         }
 
         if (sets.length > 0) {
-          sessionExercises.push({ name: ex.name, sets, maxWeight, est1RM: maxEst1RM });
+          sessionExercises.push({
+            name: ex.name,
+            sets,
+            maxWeight,
+            est1RM: maxEst1RM
+          });
         }
       });
 
@@ -536,6 +626,7 @@
         dayName: data.name,
         exercises: sessionExercises
       });
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
       showToast();
       renderDay();
@@ -546,59 +637,87 @@
       const history = getHistory();
 
       if (history.length === 0) {
-        container.innerHTML = '<p style="color:var(--text-muted); font-size:0.85rem;">Noch keine gespeicherten Einheiten vorhanden.</p>';
+        container.innerHTML = `
+          <p style="color:var(--text-muted); font-size:0.85rem;">
+            Noch keine gespeicherten Einheiten vorhanden.
+          </p>`;
         return;
       }
 
       let html = '';
+
       history.forEach(session => {
         if (session.type === 'endurance') {
           html += `
             <div class="history-entry endurance">
               <h4>${session.date} – ${session.dayName}</h4>
-              <ul style="list-style:none; padding-left:0;"><li>✓ gemacht</li></ul>
+              <ul style="list-style:none; padding-left:0;">
+                <li>✓ gemacht</li>
+              </ul>
             </div>`;
           return;
         }
+
         html += `
           <div class="history-entry">
             <h4>${session.date} – ${session.dayName}</h4>
             <ul>`;
+
         (session.exercises || []).forEach(ex => {
-          const setsStr = ex.sets.map(s => `${s.weight}kg × ${s.reps}`).join(', ');
+          const setsStr = ex.sets
+            .map(s => `${s.weight}kg × ${s.reps}`)
+            .join(', ');
+
           html += `<li><strong>${ex.name}:</strong> ${setsStr}</li>`;
         });
+
         html += `</ul></div>`;
       });
+
       container.innerHTML = html;
     }
 
     function initStatsTab() {
       const select = document.getElementById('exercise-select');
       const allExercises = new Set();
+
       Object.keys(plan).forEach(k => {
-        if (plan[k].type === 'strength') plan[k].exercises.forEach(e => allExercises.add(e.name));
+        if (plan[k].type === 'strength') {
+          plan[k].exercises.forEach(e => allExercises.add(e.name));
+        }
       });
 
       const currentVal = select.value;
-      select.innerHTML = Array.from(allExercises).map(name => `<option value="${name}">${name}</option>`).join('');
-      if (currentVal && allExercises.has(currentVal)) select.value = currentVal;
+
+      select.innerHTML = Array.from(allExercises)
+        .map(name => `<option value="${name}">${name}</option>`)
+        .join('');
+
+      if (currentVal && allExercises.has(currentVal)) {
+        select.value = currentVal;
+      }
+
       renderProgressChart();
     }
 
     function renderProgressChart() {
       const exName = document.getElementById('exercise-select').value;
-      const history = getHistory().slice().reverse();
+      const pullup = exName === 'Klimmzüge am Rack';
       const points = [];
 
-      history.forEach(sess => {
+      getHistory().slice().reverse().forEach(sess => {
         if (sess.type === 'endurance') return;
+
         const found = (sess.exercises || []).find(e => e.name === exName);
-        if (found && found.maxWeight > 0) {
+
+        const sets = found && Array.isArray(found.sets)
+          ? found.sets.filter(s => Number(s.reps) > 0)
+          : [];
+
+        if (sets.length) {
           points.push({
-            date: sess.date.slice(0, 5),
-            weight: found.maxWeight,
-            est1RM: found.est1RM || found.maxWeight
+            date: sess.date,
+            sets
           });
         }
       });
@@ -606,85 +725,203 @@
       const canvas = document.getElementById('progressChart');
       const ctx = canvas.getContext('2d');
       const summary = document.getElementById('stats-summary');
+      const width = canvas.getBoundingClientRect().width;
+
+      if (width <= 0) return;
 
       const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
+      canvas.width = Math.round(width * dpr);
       canvas.height = 220 * dpr;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, rect.width, 220);
 
-      if (points.length === 0) {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, 220);
+      ctx.font = '11px sans-serif';
+
+      if (!points.length) {
         ctx.fillStyle = '#94a3b8';
-        ctx.font = '13px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('Noch keine Daten für diese Übung', rect.width / 2, 110);
-        summary.innerHTML = '';
+        ctx.fillText('Noch keine Daten für diese Übung', width / 2, 110);
+        summary.textContent = '';
         return;
       }
 
-      const padding = 35;
-      const w = rect.width - padding * 2;
-      const h = 220 - padding * 2;
+      let series;
 
-      const maxVal = Math.max(...points.map(p => p.weight)) * 1.15;
-      const minVal = Math.min(...points.map(p => p.weight)) * 0.85;
+      if (pullup) {
+        const loads = [...new Set(
+          points.flatMap(p =>
+            p.sets.map(s => Number(s.weight) || 0)
+          )
+        )].sort((a, b) => a - b);
 
-      const getX = i => points.length === 1 ? rect.width / 2 : padding + (i / (points.length - 1)) * w;
-      const getY = val => 220 - padding - ((val - minVal) / (maxVal - minVal || 1)) * h;
+        series = loads.map(load => ({
+          label: `${load} kg Zusatzgewicht`,
+          values: points.map(p => {
+            const matching = p.sets.filter(s =>
+              (Number(s.weight) || 0) === load
+            );
 
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(padding, 220 - padding);
-      ctx.lineTo(rect.width - padding, 220 - padding);
-      ctx.stroke();
+            return matching.length
+              ? Math.max(...matching.map(s => Number(s.reps)))
+              : null;
+          })
+        }));
+      } else {
+        series = [{
+          label: 'Höchstes Gewicht (kg)',
+          values: points.map(p =>
+            Math.max(...p.sets.map(s => Number(s.weight) || 0))
+          )
+        }];
+      }
 
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      points.forEach((p, i) => {
-        const x = getX(i), y = getY(p.weight);
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      });
-      ctx.stroke();
+      const colors = [
+        '#38bdf8',
+        '#22c55e',
+        '#fbbf24',
+        '#c084fc',
+        '#fb7185',
+        '#2dd4bf'
+      ];
 
-      points.forEach((p, i) => {
-        const x = getX(i), y = getY(p.weight);
-        ctx.fillStyle = '#38bdf8';
+      const upper = Math.max(
+        1,
+        ...series.flatMap(s => s.values.filter(v => v !== null))
+      ) * 1.2;
+
+      const x = i => points.length === 1
+        ? width / 2
+        : 36 + i / (points.length - 1) * (width - 64);
+
+      const y = v => 184 - v / upper * 150;
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.textAlign = 'left';
+
+      ctx.fillText(
+        pullup
+          ? 'Beste Wiederholungszahl je Zusatzgewicht'
+          : 'Höchstes Gewicht (kg)',
+        8,
+        14
+      );
+
+      for (let i = 0; i <= 4; i++) {
+        const value = upper * i / 4;
+
+        ctx.strokeStyle = '#334155';
         ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#f8fafc';
-        ctx.font = '10px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${p.weight}kg`, x, y - 8);
+        ctx.moveTo(32, y(value));
+        ctx.lineTo(width - 20, y(value));
+        ctx.stroke();
+
         ctx.fillStyle = '#94a3b8';
-        ctx.fillText(p.date, x, 220 - 18);
+        ctx.fillText(String(Math.round(value)), 2, y(value) + 4);
+      }
+
+      series.forEach((line, index) => {
+        const color = colors[index % colors.length];
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        let started = false;
+
+        line.values.forEach((v, i) => {
+          if (v === null) {
+            started = false;
+            return;
+          }
+
+          if (started) {
+            ctx.lineTo(x(i), y(v));
+          } else {
+            ctx.moveTo(x(i), y(v));
+          }
+
+          started = true;
+        });
+
+        ctx.stroke();
+
+        line.values.forEach((v, i) => {
+          if (v === null) return;
+
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x(i), y(v), 4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      });
+
+      ctx.fillStyle = '#94a3b8';
+      ctx.textAlign = 'center';
+
+      const stride = Math.max(1, Math.ceil(points.length / 4));
+
+      points.forEach((p, i) => {
+        if (i % stride === 0 || i === points.length - 1) {
+          ctx.fillText(p.date.slice(0, 5), x(i), 210);
+        }
       });
 
       const latest = points[points.length - 1];
-      summary.innerHTML = `Letzter Eintrag: <strong>${latest.weight} kg</strong> (Geschätztes 1RM: <strong>${latest.est1RM} kg</strong>)`;
+
+      if (pullup) {
+        const legend = series.map((s, i) =>
+          `<span style="color:${colors[i % colors.length]}">${s.label}</span>`
+        ).join(' · ');
+
+        summary.innerHTML = legend
+          + '<br>Letzte Einheit: '
+          + latest.sets.map(s =>
+            `${Number(s.weight) || 0} kg Zusatzgewicht × ${s.reps} Wdh.`
+          ).join(' | ')
+          + '<br>Mehr Wiederholungen bei gleichem Zusatzgewicht sind ein Fortschritt. Ein höheres Zusatzgewicht wird separat sichtbar; es wird nicht mit weniger Wiederholungen zu einem einzigen Wert verrechnet.';
+      } else {
+        const weight = Math.max(
+          ...latest.sets.map(s => Number(s.weight) || 0)
+        );
+
+        const est = Math.max(
+          ...latest.sets.map(s =>
+            (Number(s.weight) || 0) * (1 + Number(s.reps) / 30)
+          )
+        );
+
+        summary.textContent =
+          `Letzter Eintrag: ${weight} kg · geschätztes 1RM: ${Math.round(est * 10) / 10} kg (grobe Orientierung, kein Testwert).`;
+      }
     }
 
     function exportData() {
       const history = getHistory();
-      const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
+      const blob = new Blob(
+        [JSON.stringify(history, null, 2)],
+        { type: 'application/json' }
+      );
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
+
       a.href = url;
       a.download = `trainingsplan_backup_${todayIso()}.json`;
       a.click();
+
       URL.revokeObjectURL(url);
     }
 
     function importData(event) {
       const file = event.target.files[0];
       if (!file) return;
+
       const reader = new FileReader();
+
       reader.onload = function(e) {
         try {
           const parsed = JSON.parse(e.target.result);
+
           if (Array.isArray(parsed)) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
             alert('Backup erfolgreich wiederhergestellt!');
@@ -697,6 +934,7 @@
           alert('Fehler beim Lesen der Datei.');
         }
       };
+
       reader.readAsText(file);
     }
 
